@@ -4,6 +4,7 @@
 #include <okapi>
 
 #define voidfunc "SV_CheckForDuplicateNames"
+#define voidfunc_in_connect "SV_ConnectClient"
 #define console_max 0xff
 
 #define PLUGIN "SV_CheckForDuplicateNames_fix"
@@ -16,51 +17,126 @@ new SV_CheckForDuplicateNames_win[] = {
 	0xDEF,0xDEF,0xDEF,0xDEF,0xDEF,0x45,0xDEF,0xDEF,0xDEF,
 	0xDEF,0xDEF,0xDEF
 }
+new SV_CheckForDuplicateNames_win3[] = {
+	0x55,0x8B,0xEC,0x83,0xDEF,0x58,0x53,0x56,0x57,0x33,0xDEF,
+	0x89,0x55,0xDEF,0x68,0xDEF,0xDEF,0xDEF,0xDEF,0x51,0x89,
+	0xDEF,0xDEF,0xDEF,0x45,0xDEF,0xDEF,0xDEF,0xDEF,0xDEF,0x89,0x45
+}
+new SV_CheckForDuplicateNames_win2[] = {
+	0x55,0x8B,0xEC,0x83,0xDEF,0x48,0xDEF,0x45,0xDEF,0x53,0x56,0x57,
+	0xDEF,0xDEF,0xDEF,0xDEF,0xDEF,0xDEF,0x68,0x38,0xDEF,0xDEF,
+	0xDEF,0x53,0xDEF,0x45,0xDEF,0xDEF,0xDEF,0xDEF,0xDEF,0xDEF
+}
+
+new SV_ConnectClient[] = {
+	0x55,0x8B,0xEC,0x81,0xDEF,0xDEF,0xDEF,0xDEF,0xDEF,
+	0x53,0x56,0x57,0xB9,0x05,0x00,0x00,0x00,0xBE,0xDEF,
+	0xDEF,0xDEF,0xDEF,0x8D,0xDEF,0xDEF,0x33,0xDB,0x68,
+	0xDEF,0xDEF,0xDEF,0xDEF
+}
 
 public plugin_precache() {
 	
 	register_plugin(PLUGIN, VERSION, AUTHOR)
 	
 	new LogPlugin[0xFF],LogPluginError[0xFF]
-	formatex(LogPlugin,charsmax(LogPlugin),"%s Functia %s a primit hook cu succes",PLUGIN,voidfunc)
-	formatex(LogPluginError,charsmax(LogPluginError),"%s n-am gasit functia %s",PLUGIN,voidfunc)
+	formatex(LogPlugin,charsmax(LogPlugin),"%s Functia a primit hook cu succes",PLUGIN)
+	formatex(LogPluginError,charsmax(LogPluginError),"%s n-am gasit functia",PLUGIN)
+	
 	
 	if(is_linux_server()){
+		
+		new linux_void2 = okapi_engine_get_symbol_ptr(voidfunc_in_connect)
+		
 		new linux = okapi_engine_get_symbol_ptr(voidfunc)
-		if(linux){
-			okapi_add_hook(okapi_build_function(linux,arg_string,arg_int,arg_int),voidfunc)
-			server_print("%s [linux]",LogPlugin)
+		
+		if(linux_void2){
+			okapi_add_hook(okapi_build_function(linux_void2,arg_string,arg_int,arg_int),voidfunc)
+			server_print("%s [linux] [SV_ConnectClient] ",LogPlugin)
 		}
 		else{
-			server_print("%s [linux]",LogPluginError)
+			server_print("%s [linux] [SV_ConnectClient] ",LogPluginError)
+		}
+		
+		if(linux){
+			okapi_add_hook(okapi_build_function(linux,arg_string,arg_int,arg_int),voidfunc)
+			server_print("%s [linux] [SV_CheckForDuplicateNames]",LogPlugin)
+		}
+		else{
+			server_print("%s [linux] [SV_CheckForDuplicateNames]",LogPluginError)
 		}
 	}
 	else{
-		new windows = okapi_engine_find_sig(SV_CheckForDuplicateNames_win,charsmax(SV_CheckForDuplicateNames_win))
-		if(windows){
-			okapi_add_hook(okapi_build_function(windows,arg_string,arg_int,arg_int),voidfunc)
-			server_print("%s [windows]",LogPlugin)
+		new connect = okapi_engine_find_sig(SV_ConnectClient,charsmax(SV_ConnectClient))
+		
+		new win_oldbuild = okapi_engine_find_sig(SV_CheckForDuplicateNames_win,charsmax(SV_CheckForDuplicateNames_win))
+		
+		new win_newbuild = okapi_engine_find_sig(SV_CheckForDuplicateNames_win2,charsmax(SV_CheckForDuplicateNames_win2))
+		
+		new win_rehlds = okapi_engine_find_sig(SV_CheckForDuplicateNames_win3,charsmax(SV_CheckForDuplicateNames_win3))
+		
+		if(connect){
+			okapi_add_hook(okapi_build_function(connect,arg_int),"SV_ConnectClient_Hook")
+			server_print("%s [windows] [SV_ConnectClient] ",LogPlugin)
+		}
+		
+		if(win_oldbuild){
+			okapi_add_hook(okapi_build_function(win_oldbuild,arg_string,arg_int,arg_int),voidfunc)
+			server_print("%s [windows] [SV_CheckForDuplicateNames] ",LogPlugin)
+		}
+		else if(win_newbuild){
+			okapi_add_hook(okapi_build_function(win_newbuild,arg_string,arg_int,arg_int),voidfunc)
+			server_print("%s [windows] [SV_CheckForDuplicateNames]",LogPlugin)
+		}
+		else if(win_rehlds){
+			okapi_add_hook(okapi_build_function(win_rehlds,arg_string,arg_int,arg_int),voidfunc)
+			server_print("%s [windows] [SV_CheckForDuplicateNames]",LogPlugin)
 		}
 		else{
-			server_print("%s [windows]",LogPluginError)
+			server_print("%s [windows] [SV_CheckForDuplicateNames]",LogPluginError)
 		}
 	}
 }
 public SV_CheckForDuplicateNames(userinfo[],bIsReconnecting,nExcludeSlot){
-	if(IsInvalidFunction()){
+	if(IsInvalidFunction(1," Your userinfo is invalid")){
 		return okapi_ret_supercede
 	}
 	return okapi_ret_ignore
 }
 
-stock IsInvalidFunction(){
+public SV_ConnectClient_Hook()
+{
+	if(IsInvalidFunction(2,"userinfo")){
+		return okapi_ret_supercede
+	}
+	return okapi_ret_ignore
+}
+stock IsInvalidFunction(functioncall,stringexit[]){
 	if(okapi_engine_find_string("(%d)%-0.*s")){
-		if(containi(Argv4(),"^x22")!=-0x01 || containi(Argv4(),"^x2E^x2E")!=-0x01 ||
-		containi(Argv4(),"^x5C")!=-0x01 || containi(Argv4(),"^x2E^xFA^x2E")!=-0x01) {
-			new GetInvalid[0x78]
-			BufferName(Argv4(),0x5DC,GetInvalid)
-			server_cmd("^x6B^x69^x63^x6B^x20^x25^x73^x22",GetInvalid)
-			return 1
+		
+		new GetInvalid[0x78]
+		BufferName(Argv4(),0x5DC,GetInvalid)
+		
+		if(functioncall == 1)
+		{
+			if(containi(Argv4(),"^x22")!=-0x01 || containi(Argv4(),"^x2E^x2E")!=-0x01 ||
+			containi(Argv4(),"^x5C")!=-0x01 || containi(Argv4(),"^x2E^x20")!=-0x01 || 
+			containi(Argv4(),"^x63^x6F^x6E^x73^x6F^x6C^x65")!=-0x01) {
+				replace(GetInvalid,31,"^x2E","")
+				server_cmd("^x6B^x69^x63^x6B^x20^x25^x73^x22 ^x25^x73",GetInvalid,stringexit)
+				server_cmd("^x6B^x69^x63^x6B^x20^x25^x73^x2e ^x25^x73",GetInvalid,stringexit)
+				server_cmd("^x6B^x69^x63^x6B^x20^x75^x6E^x6E^x61^x6D^x65^x64^x20^x25^x73",stringexit)
+				server_cmd("^x6B^x69^x63^x6B^x20^x75^x6E^x61^x6D^x65^x64^x20^x25^x73",stringexit)
+				return 1
+			}
+		}
+		if(functioncall == 2){
+			new checkduplicate[255]
+			formatex(checkduplicate,charsmax(checkduplicate),"^x25^x73^x5C^x6E^x61^x6D^x65^x5C",GetInvalid)
+			if(containi(Argv4(), checkduplicate) != -1){
+				log_amx("%s : user ^"%s^" used many string ^"\name\^"",voidfunc_in_connect,GetInvalid)
+				return 1
+			}
 		}
 	}
 	return 0
@@ -75,12 +151,11 @@ stock Argv4(){
 stock BufferName(info[],size,name[],size_name = 0x1F)
 {
 	new heh = 0x00;
-	if ((heh = containi(info, "\name\") ) != -1){
+	if ((heh = containi(info, "^x5C^x6E^x61^x6D^x65^x5C") ) != -1){
 		heh += 0x06;
 		new len = 0x00;
 		while(info[heh] != '\' && info[heh] != '"' && len < size_name && heh < size)
 			name[len++] = info[heh++];
-		
 		name[len] = EOS;
 	}
 	else{
